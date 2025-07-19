@@ -1,0 +1,80 @@
+import numpy as np
+from scipy.fft import fft, ifft
+from scipy.stats import pearsonr
+from msfun_prepare_cosine_filter import msfun_prepare_cosine_filter
+
+def msfun_meg_ica_corranalysis(IC, extdata, cfg):
+    if extdata is None or len(extdata) == 0:
+        print("msfun_meg_ica_corranalysis - WARNING : No external data supplied... Skipping the correlation analysis.")
+        return IC
+
+    if "S" not in IC or not isinstance(IC["S"], np.ndarray):
+        raise ValueError("IC structure missing or inconsistent")
+
+    epoching = IC["S"].ndim == 3
+    if epoching:
+        K, numofic, T = IC["S"].shape
+    else:
+        numofic, T = IC["S"].shape
+
+    extdata = np.array(extdata)
+    if extdata.shape[-1] != T:
+        raise ValueError("External data not consistent with IC shape")
+
+    if epoching:
+        if extdata.shape[0] != K:
+            raise ValueError("Epoch count mismatch between IC and extdata")
+        S = extdata.shape[1]
+    else:
+        S = extdata.shape[0]
+
+    cfg = cfg or {}
+    cfg.setdefault("extname", [f"ext{k+1}" for k in range(S)])
+    cfg.setdefault("filter", True)
+    cfg.setdefault("Tcorr", 0.15)
+
+    if cfg["filter"]:
+        cfg.setdefault("filt", {
+            "sfreq": 1000,
+            "win": "boxcar",
+            "par": ["high", "low"],
+            "freq": [1, 25],
+            "width": [0.5, 5]
+        })
+
+    if epoching:
+        print("msfun_meg_ica_corranalysis - Baseline correcting and concatenating epochs...")
+        X = np.zeros((numofic, K * T))
+        Y = np.zeros((S, K * T))
+        for k in range(K):
+            avX = IC["S"][k].mean(axis=1, keepdims=True)
+            avY = extdata[k].mean(axis=1, keepdims=True)
+            X[:, k*T:(k+1)*T] = IC["S"][k] - avX
+            Y[:, k*T:(k+1)*T] = extdata[k] - avY
+        IC["S"] = X
+        extdata = Y
+
+    if cfg["filter"]:
+        print("msfun_meg_ica_corranalysis - Filtering ICs and external data...")
+        win, F = msfun_prepare_cosine_filter(cfg["filt"], IC["S"].shape[1], cfg["filt"]["sfreq"])
+        icasig = np.real(ifft(fft(IC["S"] * win, axis=1) * F, axis=1))
+        extdata = np.real(ifft(fft(extdata * win, axis=1) * F, axis=1))
+    else:
+        icasig = IC["S"]
+
+    print("msfun_meg_ica_corranalysis - Performing correlation analysis...")
+    rho = np.corrcoef(np.concatenate((extdata, icasig), axis=0))[:S, S:]
+
+    if "corr" not in IC:
+        IC["corr"] = {}
+    IC["corr"]["list"] = []
+
+    for k in range(S):
+        IC["corr"][cfg["extname"][k]] = rho[k]
+        IC["corr"]["list"].extend(np.where(np.abs(rho[k]) >= cfg["Tcorr"])[0])
+
+    IC["corr"]["list"] = sorted(set(IC["corr"]["list"]))
+    IC["corr"]["Tcorr"] = cfg["Tcorr"]
+
+    print("msfun_meg_ica_corranalysis - Done.")
+    return IC
