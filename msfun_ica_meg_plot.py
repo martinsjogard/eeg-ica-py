@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def msfun_meg_ica_resultfig(IC):
+def msfun_ica_meg_plot(IC):
     reject = []
 
     # Handle cumulant analysis rejections
@@ -33,7 +33,7 @@ def msfun_meg_ica_resultfig(IC):
     ncol = int(np.floor(np.sqrt(Ntot)))
     nrow = int(np.ceil(Ntot / ncol))
 
-    print("msfun_meg_ica_resultfig - Generating plots...")
+    print("msfun_ica_meg_plot - Generating plots...")
     fig, axs = plt.subplots(nrow, ncol, figsize=(4 * ncol, 3 * nrow))
     axs = axs.flatten()
     n = 0
