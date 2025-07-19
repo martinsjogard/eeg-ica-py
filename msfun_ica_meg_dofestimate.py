@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def msfun_meg_ica_ndof(data, cfg):
+def msfun_ica_meg_dofestimate(data, cfg):
     if not isinstance(data, np.ndarray) or data.ndim not in [2, 3]:
-        raise ValueError("msfun_meg_ica_ndof - ERROR: data must be a numeric array... Try again.")
+        raise ValueError("msfun_ica_meg_dofestimate - ERROR: data must be a numeric array... Try again.")
 
     if data.ndim == 3:
         epoching = True
@@ -13,37 +13,37 @@ def msfun_meg_ica_ndof(data, cfg):
         N, T = data.shape
 
     if not isinstance(cfg, dict):
-        raise ValueError("msfun_meg_ica_ndof - ERROR: Configuration not a structure... Try again.")
+        raise ValueError("msfun_ica_meg_dofestimate - ERROR: Configuration not a structure... Try again.")
 
     normalize = cfg.get("normalize", None)
     if normalize is not None:
         normalize = np.asarray(normalize)
         if normalize.ndim != 1 or len(normalize) != N or np.any(normalize <= 0):
-            raise ValueError("msfun_meg_ica_ndof - ERROR: Normalization factors inconsistent... Try again.")
+            raise ValueError("msfun_ica_meg_dofestimate - ERROR: Normalization factors inconsistent... Try again.")
     else:
         normalize = None
 
     method = cfg.get("method", "rel")
     if method not in ["abs", "maxrel", "rel"]:
-        raise ValueError("msfun_meg_ica_ndof - ERROR: Method not recognized... Try again.")
+        raise ValueError("msfun_ica_meg_dofestimate - ERROR: Method not recognized... Try again.")
 
     param = cfg.get("param", 1e3)
 
     if epoching:
-        print("msfun_meg_ica_ndof - Baseline correcting and concatenating epochs...")
+        print("msfun_ica_meg_dofestimate - Baseline correcting and concatenating epochs...")
         X = np.zeros((N, K*T))
         for k in range(K):
             av = np.mean(data[k, :, :], axis=1, keepdims=True)
             X[:, k*T:(k+1)*T] = data[k, :, :] - av
         data = X
 
-    print("msfun_meg_ica_ndof - Normalizing data...")
+    print("msfun_ica_meg_dofestimate - Normalizing data...")
     if normalize is None:
         normalize = np.std(data, axis=1)
-        print("msfun_meg_ica_ndof -   using data standard deviation...")
+        print("msfun_ica_meg_dofestimate -   using data standard deviation...")
     data = data / normalize[:, np.newaxis]
 
-    print("msfun_meg_ica_ndof - Computing normalized data covariance and its eigenvalues...")
+    print("msfun_ica_meg_dofestimate - Computing normalized data covariance and its eigenvalues...")
     D = np.linalg.eigvalsh(np.cov(data))
     D = np.sort(D)
 
@@ -58,10 +58,10 @@ def msfun_meg_ica_ndof(data, cfg):
         n = np.where(R >= param)[0][-1]
 
     ndof = N - n
-    print(f"msfun_meg_ica_ndof - Estimated {ndof} largest eigendirections...")
+    print(f"msfun_ica_meg_dofestimate - Estimated {ndof} largest eigendirections...")
 
     # Plot eigenvalues
-    plt.figure("msfun_meg_ica_ndof - Normalized data covariance eigenvalues")
+    plt.figure("msfun_ica_meg_dofestimate - Normalized data covariance eigenvalues")
     if method in ["abs", "maxrel"]:
         plt.plot(D, "r")
         plt.xlabel("n")
