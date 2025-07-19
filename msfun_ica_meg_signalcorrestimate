@@ -3,9 +3,9 @@ from scipy.fft import fft, ifft
 from scipy.stats import pearsonr
 from msfun_prepare_cosine_filter import msfun_prepare_cosine_filter
 
-def msfun_meg_ica_corranalysis(IC, extdata, cfg):
+def msfun_ica_meg_signalcorrestimate(IC, extdata, cfg):
     if extdata is None or len(extdata) == 0:
-        print("msfun_meg_ica_corranalysis - WARNING : No external data supplied... Skipping the correlation analysis.")
+        print("msfun_ica_meg_signalcorrestimate - WARNING : No external data supplied... Skipping the correlation analysis.")
         return IC
 
     if "S" not in IC or not isinstance(IC["S"], np.ndarray):
@@ -43,7 +43,7 @@ def msfun_meg_ica_corranalysis(IC, extdata, cfg):
         })
 
     if epoching:
-        print("msfun_meg_ica_corranalysis - Baseline correcting and concatenating epochs...")
+        print("msfun_ica_meg_signalcorrestimate - Baseline correcting and concatenating epochs...")
         X = np.zeros((numofic, K * T))
         Y = np.zeros((S, K * T))
         for k in range(K):
@@ -55,14 +55,14 @@ def msfun_meg_ica_corranalysis(IC, extdata, cfg):
         extdata = Y
 
     if cfg["filter"]:
-        print("msfun_meg_ica_corranalysis - Filtering ICs and external data...")
+        print("msfun_ica_meg_signalcorrestimate - Filtering ICs and external data...")
         win, F = msfun_prepare_cosine_filter(cfg["filt"], IC["S"].shape[1], cfg["filt"]["sfreq"])
         icasig = np.real(ifft(fft(IC["S"] * win, axis=1) * F, axis=1))
         extdata = np.real(ifft(fft(extdata * win, axis=1) * F, axis=1))
     else:
         icasig = IC["S"]
 
-    print("msfun_meg_ica_corranalysis - Performing correlation analysis...")
+    print("msfun_ica_meg_signalcorrestimate - Performing correlation analysis...")
     rho = np.corrcoef(np.concatenate((extdata, icasig), axis=0))[:S, S:]
 
     if "corr" not in IC:
@@ -76,5 +76,5 @@ def msfun_meg_ica_corranalysis(IC, extdata, cfg):
     IC["corr"]["list"] = sorted(set(IC["corr"]["list"]))
     IC["corr"]["Tcorr"] = cfg["Tcorr"]
 
-    print("msfun_meg_ica_corranalysis - Done.")
+    print("msfun_ica_meg_signalcorrestimate - Done.")
     return IC
