@@ -1,6 +1,6 @@
 # ICA Tools for EEG/MEG – Python Implementation
 
-This repository contains a collection of Python functions converted and adapted from MATLAB code for **Independent Component Analysis (ICA)** in EEG/MEG signal processing. These functions assist with estimating ICA components, analyzing their properties, correcting for artifacts, and visualizing results.
+This repository contains a collection of Python functions for Independent Component Analysis (ICA) in EEG/MEG signal processing. These functions assist with estimating ICA components, analyzing their properties, correcting for artifacts, and visualizing results.
 
 The prefix `msfun_` is used to denote modular signal processing functions.
 
