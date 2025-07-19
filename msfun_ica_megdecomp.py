@@ -1,6 +1,6 @@
 import numpy as np
 
-def msfun_meg_ica(raw, data, extdata=None, cfg=None):
+def msfun_ica_megdecomp(raw, data, extdata=None, cfg=None):
     '''
     Applies temporal ICA decomposition to MEG data, optionally including 
     correlation analysis with external signals.
@@ -56,12 +56,12 @@ def msfun_meg_ica(raw, data, extdata=None, cfg=None):
         raise ValueError("data must be 2D or 3D")
 
     if N != 306:
-        print("msfun_meg_ica - WARNING: Data may not come from Neuromag Elekta MEG system")
+        print("msfun_ica_megdecomp - WARNING: Data may not come from Neuromag Elekta MEG system")
 
-    print("msfun_meg_ica - Preparing data for ICA...")
+    print("msfun_ica_megdecomp - Preparing data for ICA...")
 
     if epoching:
-        print("msfun_meg_ica - Baseline correcting and concatenating epochs...")
+        print("msfun_ica_megdecomp - Baseline correcting and concatenating epochs...")
         data = data - np.mean(data, axis=2, keepdims=True)
         data = msfun_sig_concat_epoch(data, K, "epochnum")
 
@@ -69,9 +69,9 @@ def msfun_meg_ica(raw, data, extdata=None, cfg=None):
     IC = msfun_meg_ica_cumulantanalysis(IC, cfg.get("cumulant", {}))
 
     if cfg.get("corranalysis", False):
-        print("msfun_meg_ica - Preparing external signals for correlation analysis...")
+        print("msfun_ica_megdecomp - Preparing external signals for correlation analysis...")
         if epoching:
-            print("msfun_meg_ica -       baseline correcting and concatenating epochs...")
+            print("msfun_ica_megdecomp -       baseline correcting and concatenating epochs...")
             extdata_new = np.zeros((S, K * T))
             for k in range(K):
                 av = np.mean(extdata[k, :, :], axis=1)
@@ -80,7 +80,7 @@ def msfun_meg_ica(raw, data, extdata=None, cfg=None):
         IC = msfun_meg_ica_corranalysis(IC, extdata, cfg.get("corr", {}))
 
     if epoching:
-        print("msfun_meg_ica - Restoring epochs in IC time courses...")
+        print("msfun_ica_megdecomp - Restoring epochs in IC time courses...")
         IC["S"] = msfun_sig_concat_epoch(IC["S"], K, "epochlength")
 
     if cfg.get("spectralanalysis", False):
