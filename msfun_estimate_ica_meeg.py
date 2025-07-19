@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.decomposition import FastICA
 
-def msfun_eeg_ica_estimate(sig, cfg=None):
+def msfun_estimate_ica_meeg(sig, cfg=None):
     """
     Decomposes the [N x T] multivariate signal matrix using temporal ICA.
 
@@ -26,9 +26,9 @@ def msfun_eeg_ica_estimate(sig, cfg=None):
     fastica_params = cfg.get("fastica", {'fun': 'tanh', 'n_components': min(N, 30)})
 
     # Signal normalization
-    print("msfun_eeg_ica_estimate - Normalizing data units...")
+    print("msfun_estimate_ica_meeg - Normalizing data units...")
     if normalize is None:
-        print("msfun_eeg_ica_estimate -       using temporal standard deviation of data...")
+        print("msfun_estimate_ica_meeg -       using temporal standard deviation of data...")
         normalize = np.std(sig, axis=1)
     else:
         normalize = np.asarray(normalize)
@@ -38,14 +38,14 @@ def msfun_eeg_ica_estimate(sig, cfg=None):
     sig_norm = sig / normalize[:, np.newaxis]
 
     # Run FastICA
-    print("msfun_eeg_ica_estimate - FASTICA in action...")
+    print("msfun_estimate_ica_meeg - FASTICA in action...")
     ica = FastICA(**fastica_params)
     S = ica.fit_transform(sig_norm.T).T  # components x time
     A = ica.mixing_                      # N x components
     W = ica.components_                  # components x N
 
     # Restore original units
-    print("msfun_eeg_ica_estimate - Restoring original data units...")
+    print("msfun_estimate_ica_meeg - Restoring original data units...")
     A_scaled = A * normalize[:, np.newaxis]
     W_scaled = W / normalize[np.newaxis, :]
 
