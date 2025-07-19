@@ -3,13 +3,13 @@ from scipy.fft import fft, ifft
 from scipy.stats import pearsonr
 from msfun_prepare_cosine_filter import msfun_prepare_cosine_filter
 
-def msfun_meg_ica_corranalysis2(IC, extdata, cfg):
+def msfun_ica_meg_signalcorrestimate_trialwise(IC, extdata, cfg):
     if extdata is None or len(extdata) == 0:
-        print('msfun_meg_ica_corranalysis2 - WARNING : No external data supplied... Skipping the correlation analysis.')
+        print('msfun_ica_meg_signalcorrestimate_trialwise - WARNING : No external data supplied... Skipping the correlation analysis.')
         return IC
 
     if 'S' not in IC or not isinstance(IC['S'], np.ndarray) or IC['S'].ndim not in [2, 3]:
-        raise ValueError('msfun_meg_ica_corranalysis2 - ERROR : IC structure missing elements or inconsistent.')
+        raise ValueError('msfun_ica_meg_signalcorrestimate_trialwise - ERROR : IC structure missing elements or inconsistent.')
 
     if IC['S'].ndim == 2:
         epoching = False
@@ -20,15 +20,15 @@ def msfun_meg_ica_corranalysis2(IC, extdata, cfg):
 
     extdata = np.asarray(extdata)
     if extdata.ndim != IC['S'].ndim:
-        raise ValueError('msfun_meg_ica_corranalysis2 - ERROR : External data array inconsistent.')
+        raise ValueError('msfun_ica_meg_signalcorrestimate_trialwise - ERROR : External data array inconsistent.')
 
     if epoching:
         if extdata.shape != (K, extdata.shape[1], T):
-            raise ValueError('msfun_meg_ica_corranalysis2 - ERROR : External data not consistent with IC.')
+            raise ValueError('msfun_ica_meg_signalcorrestimate_trialwise - ERROR : External data not consistent with IC.')
         S = extdata.shape[1]
     else:
         if extdata.shape[1] != T:
-            raise ValueError('msfun_meg_ica_corranalysis2 - ERROR : External data not consistent with IC.')
+            raise ValueError('msfun_ica_meg_signalcorrestimate_trialwise - ERROR : External data not consistent with IC.')
         S = extdata.shape[0]
 
     cfg = cfg or {}
@@ -47,7 +47,7 @@ def msfun_meg_ica_corranalysis2(IC, extdata, cfg):
         cfg['filt'] = filt
 
     if epoching:
-        print('msfun_meg_ica_corranalysis2 - Baseline correcting and concatenating epochs...')
+        print('msfun_ica_meg_signalcorrestimate_trialwise - Baseline correcting and concatenating epochs...')
         X = np.zeros((numofic, K * T))
         Y = np.zeros((S, K * T))
         for k in range(K):
@@ -60,12 +60,12 @@ def msfun_meg_ica_corranalysis2(IC, extdata, cfg):
         T *= K
 
     if cfg['filter']:
-        print('msfun_meg_ica_corranalysis2 - Filtering ICs and external data...')
+        print('msfun_ica_meg_signalcorrestimate_trialwise - Filtering ICs and external data...')
         win, F = msfun_prepare_cosine_filter(cfg['filt'], T, cfg['filt']['sfreq'])
         IC['S'] = np.real(ifft(fft(IC['S'] * win, axis=1) * F, axis=1))
         extdata = np.real(ifft(fft(extdata * win, axis=1) * F, axis=1))
 
-    print('msfun_meg_ica_corranalysis2 - Performing correlation analysis...')
+    print('msfun_ica_meg_signalcorrestimate_trialwise - Performing correlation analysis...')
     sigrho = np.corrcoef(extdata, IC['S'])[:S, S:]
     powrho = np.corrcoef(extdata**2, IC['S']**2)[:S, S:]
 
@@ -82,5 +82,5 @@ def msfun_meg_ica_corranalysis2(IC, extdata, cfg):
 
     IC['corr']['list'] = sorted(set(IC['corr']['list']))
 
-    print('msfun_meg_ica_corranalysis2 - Done.')
+    print('msfun_ica_meg_signalcorrestimate_trialwise - Done.')
     return IC
