@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from typing import Dict
 
-def msfun_meg_ica_spectralanalysis(IC: Dict, cfg: Dict) -> Dict:
+def msfun_meg_ica_spectralfit(IC: Dict, cfg: Dict) -> Dict:
     if 'freq' not in IC or 'powspctrm' not in IC:
         raise ValueError("IC structure missing required fields 'freq' and 'powspctrm'")
 
