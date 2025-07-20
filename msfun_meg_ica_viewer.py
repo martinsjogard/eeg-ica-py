@@ -1,18 +1,16 @@
 # msfun_meg_ica_viewer.py
-# Placeholder: Due to the interactive MATLAB GUI design, a fully functional cross-platform viewer
-# is difficult to replicate directly in a Python script. You'd use libraries like matplotlib, numpy,
-# and possibly a GUI framework like PyQt5 or Jupyter widgets.
-
-# Core logic would involve:
-# - Displaying component time series or power spectra
-# - Interactively browsing through components and time windows
-# - Topographic plotting (e.g., using MNE-Python)
-
-# This placeholder structure gives you the entry point and expected behavior.
-# You will need to implement actual GUI/viewer behavior depending on your environment.
 
 def msfun_meg_ica_viewer(raw, times, IC, cfg=None):
-    if cfg is None:
-        cfg = {}
+    '''
+    Placeholder for converting MATLAB meg_ica_viewer to Python.
+    This function originally served as an interactive GUI viewer for IC time series and topoplots.
 
-    raise NotImplementedError("This function is a MATLAB viewer port. Implement interactive GUI manually.")
+    Parameters:
+        raw: MNE Raw object or similar header structure
+        times: array of time values, [T] or [K, T]
+        IC: dict containing keys 'S', 'A', optionally 'powspctrm'
+        cfg: configuration dict with keys like 'dim', 'twin', 'tstep', 'topo', etc.
+
+    Note: Interactive browsing is not implemented in this placeholder.
+    '''
+    raise NotImplementedError("Interactive GUI viewer from MATLAB must be rebuilt using matplotlib, PyQt, or Jupyter widgets.")

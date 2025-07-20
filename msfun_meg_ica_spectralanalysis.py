@@ -1,75 +1,73 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Dict, Any
+from scipy.optimize import curve_fit
+from typing import Dict
 
-def msfun_meg_ica_spectralanalysis(IC: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, Any]:
-    if not isinstance(IC, dict) or 'freq' not in IC or 'powspctrm' not in IC:
-        raise ValueError("IC structure missing elements or inconsistent")
+def msfun_meg_ica_spectralanalysis(IC: Dict, cfg: Dict) -> Dict:
+    if 'freq' not in IC or 'powspctrm' not in IC:
+        raise ValueError("IC structure missing required fields 'freq' and 'powspctrm'")
 
-    freq = np.array(IC['freq']).flatten()
-    powspctrm = np.array(IC['powspctrm'])
-
-    if powspctrm.shape[1] != len(freq):
-        raise ValueError("Frequency and power spectrum dimensions do not match")
-
-    numofic, F = powspctrm.shape
-
-    cfg = cfg.copy()
-    cfg['visual'] = cfg.get('visual', True)
-    if 'fit' not in cfg or not isinstance(cfg['fit'], list) or len(cfg['fit']) % 2 != 0:
-        raise ValueError("cfg.fit must be a list of curve/band pairs")
-
-    L = len(cfg['fit']) // 2
-    cfg['Tgof'] = np.array(cfg.get('Tgof', [0.03] * L))
-
+    numofic, F = IC['powspctrm'].shape
+    freq = IC['freq']
     IC['spectral'] = {}
-    IC['spectral']['fit'] = list(cfg['fit'])
+    IC['spectral']['fit'] = cfg['fit']
+    L = len(cfg['fit']) // 2
+    gof = np.zeros((numofic, L))
+
     for k in range(L):
-        fband = cfg['fit'][2*k+1]
-        idx_start = np.searchsorted(freq, fband[0], side='left')
-        idx_end = np.searchsorted(freq, fband[1], side='right') - 1
-        IC['spectral']['fit'][2*k+1] = [freq[idx_start], freq[idx_end]]
+        kind = cfg['fit'][2*k].lower()
+        fmin, fmax = cfg['fit'][2*k+1]
+        f1 = np.where(freq >= fmin)[0][0]
+        f2 = np.where(freq <= fmax)[0][-1]
+        cfg['fit'][2*k+1] = [f1, f2]
+        IC['spectral']['fit'][2*k+1] = freq[f1:f2+1].tolist()
 
-    IC['spectral']['gof'] = np.zeros((numofic, L))
+    if 'Tgof' not in cfg:
+        cfg['Tgof'] = [0.03] * L
 
-    if cfg['visual']:
+    if cfg.get('visual', True):
         plt.ion()
-        fig, axs = plt.subplots(2, L, figsize=(6*L, 8))
+        fig, axes = plt.subplots(2, L, figsize=(5*L, 8))
 
     for n in range(numofic):
         for k in range(L):
-            fit_type = cfg['fit'][2*k]
-            idx_start = np.searchsorted(freq, cfg['fit'][2*k+1][0], side='left')
-            idx_end = np.searchsorted(freq, cfg['fit'][2*k+1][1], side='right')
-            x = powspctrm[n, idx_start:idx_end]
-            f = freq[idx_start:idx_end]
-
-            if fit_type == 'linear':
-                p = np.polyfit(f, x, 1)
-                xhat = np.polyval(p, f)
-            elif fit_type == 'powlaw':
-                p = np.polyfit(np.log(f), np.log(x), 1)
-                p = [np.exp(p[1]), p[0]]
-                xhat = p[0] * f ** p[1]
+            fidx = cfg['fit'][2*k+1]
+            x = IC['powspctrm'][n, fidx[0]:fidx[1]+1]
+            f = freq[fidx[0]:fidx[1]+1]
+            if cfg['fit'][2*k].lower() == 'linear':
+                def model(f, a, b): return a + b * f
+                popt, _ = curve_fit(model, f, x)
+                xhat = model(f, *popt)
+            elif cfg['fit'][2*k].lower() == 'powlaw':
+                def model(f, a, b): return a * f ** b
+                logf = np.log(f)
+                logx = np.log(x)
+                coef = np.polyfit(logf, logx, 1)
+                a_init = np.exp(coef[1])
+                b_init = coef[0]
+                popt, _ = curve_fit(model, f, x, p0=[a_init, b_init])
+                xhat = model(f, *popt)
             else:
-                raise ValueError("Unsupported fit type")
+                raise ValueError(f"Unsupported fit type: {cfg['fit'][2*k]}")
+            gof[n, k] = np.sum((x - xhat) ** 2) / np.sum(x ** 2)
 
-            IC['spectral']['gof'][n, k] = np.sum((x - xhat)**2) / np.sum(x**2)
+            if cfg.get('visual', True):
+                ax1, ax2 = axes[0, k], axes[1, k]
+                ax1.clear(); ax2.clear()
+                ax1.plot(f, x, label="data")
+                ax1.plot(f, xhat, 'r', label="fit")
+                ax1.set_title(f"IC {n} - {cfg['fit'][2*k]} fit")
+                ax1.legend()
+                ax2.plot(f, (x - xhat) ** 2 / np.mean(x ** 2), 'rx')
+                ax2.axhline(cfg['Tgof'][k], linestyle='--')
+                ax2.set_title(f"error (mean = {gof[n,k]:.3f})")
+                plt.pause(0.1)
 
-            if cfg['visual']:
-                axs[0, k].plot(f, x, label=f'IC {n}')
-                axs[0, k].plot(f, xhat, 'r')
-                axs[0, k].set_title(f"{fit_type} fit on IC {n}")
-                axs[1, k].plot(f, (x - xhat)**2 / np.mean(x**2), 'rx')
-                axs[1, k].axhline(cfg['Tgof'][k], linestyle='--', color='k')
-                axs[1, k].set_title(f"model error (mean = {IC['spectral']['gof'][n, k]:.3f})")
-        if cfg['visual']:
-            plt.pause(0.5)
+    IC['spectral']['gof'] = gof.tolist()
+    IC['spectral']['Tgof'] = cfg['Tgof']
+    IC['spectral']['list'] = [i for i in range(numofic) if all(gof[i, j] < cfg['Tgof'][j] for j in range(L))]
 
-    mask = np.ones((numofic,), dtype=bool)
-    for k in range(L):
-        mask = mask & (IC['spectral']['gof'][:, k] < cfg['Tgof'][k])
-    IC['spectral']['list'] = np.where(mask)[0].tolist()
-    IC['spectral']['Tgof'] = cfg['Tgof'].tolist()
-
+    if cfg.get('visual', True):
+        plt.ioff()
+        plt.show()
     return IC
