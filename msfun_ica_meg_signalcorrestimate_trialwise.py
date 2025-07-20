@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.fft import fft, ifft
 from scipy.stats import pearsonr
-from msfun_prepare_cosine_filter import msfun_prepare_cosine_filter
+from msfun_filt_preparecosine import msfun_filt_preparecosine
 
 def msfun_ica_meg_signalcorrestimate_trialwise(IC, extdata, cfg):
     if extdata is None or len(extdata) == 0:
@@ -61,7 +61,7 @@ def msfun_ica_meg_signalcorrestimate_trialwise(IC, extdata, cfg):
 
     if cfg['filter']:
         print('msfun_ica_meg_signalcorrestimate_trialwise - Filtering ICs and external data...')
-        win, F = msfun_prepare_cosine_filter(cfg['filt'], T, cfg['filt']['sfreq'])
+        win, F = msfun_filt_preparecosine(cfg['filt'], T, cfg['filt']['sfreq'])
         IC['S'] = np.real(ifft(fft(IC['S'] * win, axis=1) * F, axis=1))
         extdata = np.real(ifft(fft(extdata * win, axis=1) * F, axis=1))
 
