@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def msfun_remartIC(data, IC, list=None, flag=True):
+def msfun_ica_artifactrejection(data, IC, list=None, flag=True):
     if list is None or len(list) == 0:
         if isinstance(IC, dict) and "artdetect" in IC and isinstance(IC["artdetect"], dict) and "list" in IC["artdetect"]:
             list = IC["artdetect"]["list"]
